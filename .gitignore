@@ -1,0 +1,12 @@
+﻿# passwords and local settings
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# uploaded PDFs and downloaded data
+storage/
+import/data/
