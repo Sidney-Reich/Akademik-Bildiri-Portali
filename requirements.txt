@@ -5,3 +5,6 @@ fastapi
 uvicorn[standard]
 python-multipart
 httpx
+sqlalchemy
+jupysql
+ipykernel

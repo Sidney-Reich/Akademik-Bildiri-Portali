@@ -1,3 +1,10 @@
 {
-  "python.terminal.useEnvFile": true
+  "python.terminal.useEnvFile": true,
+  "python.terminal.activateEnvironment": true,
+  "jupyter.notebookFileRoot": "${workspaceFolder}",
+  "[sql]": { "files.eol": "\n" },
+  "files.exclude": {
+    "**/__pycache__": true,
+    ".pytest_cache": true
+  }
 }
