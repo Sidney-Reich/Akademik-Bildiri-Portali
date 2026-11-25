@@ -1,0 +1,42 @@
+# Runs on every push and pull request: builds a fresh database from the
+# migration files, loads the starter data and runs every test.
+# A pull request can be merged only when this is green.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:19
+        env:
+          POSTGRES_USER: ymh303
+          POSTGRES_PASSWORD: ci_password
+          POSTGRES_DB: portal
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ymh303 -d portal"
+          --health-interval 5s --health-retries 10
+    env:
+      POSTGRES_USER: ymh303
+      POSTGRES_PASSWORD: ci_password
+      POSTGRES_DB: portal
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+      - name: Create the tables (migrations)
+        run: python manage.py migrate
+      - name: Load the starter data
+        run: python manage.py seed
+      - name: Run all tests
+        run: python -m pytest -v
