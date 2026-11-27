@@ -10,3 +10,6 @@ __pycache__/
 # uploaded PDFs and downloaded data
 storage/
 import/data/
+
+# Jupyter Notebook will not be uploaded
+notebooks/
