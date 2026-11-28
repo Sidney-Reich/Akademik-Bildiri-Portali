@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kayıt - Akademik Bildiri Portalı</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="narrow">
+    <h1>Kayıt ol</h1>
+    <p id="message" role="status"></p>
+    <form id="form">
+      <label for="name">Ad soyad</label><input id="name" autocomplete="name" required>
+      <label for="email">E-posta</label><input id="email" type="email" autocomplete="email" required>
+      <label for="password">Parola</label><input id="password" type="password" autocomplete="new-password" minlength="8" required>
+      <p class="note">En az 8 karakter.</p>
+      <label for="orcid">ORCID (isteğe bağlı)</label><input id="orcid" placeholder="0000-0002-1825-0097">
+      <div class="row"><button class="primary">Hesap oluştur</button><a href="login.html">Zaten hesabım var</a></div>
+    </form>
+    <script src="app.js"></script>
+    <script>
+      if (token()) location.replace("mine.html");
+      document.getElementById("form").onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+          const r = await api("/auth/register", { method: "POST", json: {
+            full_name: document.getElementById("name").value, email: email.value,
+            password: password.value, orcid: orcid.value || null } });
+          sessionStorage.setItem("token", r.token);
+          location.href = "submit.html";
+        } catch (err) { show(err.message, true); }
+      };
+    </script>
+  </main>
+</body>
+</html>

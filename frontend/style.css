@@ -1,0 +1,93 @@
+/* Paper Review Portal: shared by all screens.
+   White paper, black ink, one yellow for marking. Serif, thin rules, no shadows. */
+:root {
+  --paper: #fffefa;
+  --ink: #161513;
+  --ink-2: #57534a;
+  --rule: #d9d4c3;
+  --yellow: #f2c029;
+  --yellow-pale: #fdf3cf;
+  --bad: #9b1c1c;
+  --serif: "Libertinus Serif", "TeX Gyre Pagella", "Palatino Linotype", Charter, Georgia, serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.5 var(--serif); }
+a { color: var(--ink); text-underline-offset: 3px; text-decoration-color: var(--yellow); text-decoration-thickness: 2px; }
+a:hover { background: var(--yellow-pale); }
+h1 { font-size: 28px; font-weight: 700; line-height: 1.25; margin: 0 0 24px; }
+h2 { font-size: 19px; margin: 0 0 4px; }
+.note { color: var(--ink-2); font-size: 15px; margin: 4px 0 0; }
+
+.top { border-top: 6px solid var(--yellow); border-bottom: 1px solid var(--ink); }
+.top .bar, main { max-width: 760px; margin: auto; padding-left: 20px; padding-right: 20px; }
+.top .bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px; padding-top: 14px; padding-bottom: 12px; }
+.brand { font-size: 21px; font-weight: 700; text-decoration: none; margin-right: auto; }
+.top nav { display: flex; flex-wrap: wrap; gap: 20px; font-size: 16px; }
+.top nav a { text-decoration: none; border-bottom: 3px solid transparent; }
+.top nav a[aria-current] { border-bottom-color: var(--yellow); }
+main { padding-top: 36px; padding-bottom: 64px; }
+main.narrow { max-width: 420px; }
+
+section { border-top: 1px solid var(--rule); padding: 20px 0 28px; }
+label { display: block; font-weight: 700; font-size: 15px; margin: 16px 0 4px; }
+input, select, textarea {
+  width: 100%; font: inherit; font-size: 16px; color: var(--ink); background: #fff;
+  border: 1px solid #8d887a; border-radius: 2px; padding: 7px 10px;
+}
+textarea { resize: vertical; }
+input[readonly] { background: #f4f2ea; color: var(--ink-2); border-color: var(--rule); }
+input[type=radio] { width: auto; margin: 0; accent-color: var(--ink); }
+button, .button {
+  font: inherit; font-size: 16px; color: var(--ink); background: #fff;
+  border: 1px solid var(--ink); border-radius: 2px; padding: 6px 16px; cursor: pointer;
+}
+button:hover:not(:disabled) { background: var(--yellow-pale); }
+button.primary, .button { background: var(--yellow); font-weight: 700; text-decoration: none; display: inline-block; }
+button.primary:hover:not(:disabled), .button:hover { background: #e0ae14; }
+button.link { border: 0; background: none; padding: 4px 0; font-size: 15px; text-decoration: underline; }
+button:disabled, select:disabled { opacity: .45; cursor: not-allowed; }
+:focus-visible { outline: 3px solid var(--yellow); outline-offset: 1px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin-top: 16px; }
+
+#message:empty { display: none; }
+#message { background: var(--yellow-pale); border: 1px solid var(--yellow); padding: 10px 14px; margin: 0 0 20px; }
+#message.error { background: #fbeaea; border-color: var(--bad); color: var(--bad); }
+
+/* authors */
+.author { display: grid; grid-template-columns: 28px 1fr 1fr 90px; gap: 6px 10px; padding: 14px 0; border-bottom: 1px dotted #b5af9d; }
+.author .no { grid-row: span 3; font-weight: 700; padding-top: 7px; }
+.author .inst { grid-column: 2 / -1; }
+.author .foot { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; }
+.author .foot label { display: flex; align-items: center; gap: 6px; margin: 0 auto 0 0; font-weight: 400; }
+.total { text-align: right; font-variant-numeric: tabular-nums; margin-top: 8px; }
+.total.ok::before { content: "\2713  "; }
+.total.wrong { color: var(--bad); font-weight: 700; }
+
+/* my submissions: a list, like a table of contents */
+.papers { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid var(--rule); }
+.papers > li { border-top: 1px solid var(--rule); padding: 20px 0; }
+.papers h2 { overflow-wrap: anywhere; }
+.status { background: var(--yellow-pale); border-bottom: 2px solid var(--yellow); padding: 0 6px; font-weight: 700; }
+.status.closed { background: #eeece4; border-color: #8d887a; }
+.upload { display: flex; flex-direction: column; flex: 1 1 280px; margin: 0; }
+
+@media (max-width: 600px) {
+  .author { grid-template-columns: 24px 1fr; }
+  .author input, .author .inst, .author .foot { grid-column: 2; }
+  .author .no { grid-row: span 6; }
+}
+
+/* file field (see filePicker in app.js) */
+.file { position: relative; display: flex; align-items: center; gap: 12px; background: #fff;
+        border: 1px solid #8d887a; border-radius: 2px; padding: 7px 8px; font-size: 15px; font-weight: 400; overflow-wrap: anywhere; }
+.file input { position: absolute; inset: 0; opacity: 0; padding: 0; cursor: pointer; }
+.file .choose { flex: none; border: 1px solid var(--ink); border-radius: 2px; padding: 2px 12px; }
+.file:hover .choose { background: var(--yellow-pale); }
+.file:focus-within { outline: 3px solid var(--yellow); outline-offset: 1px; }
+.status-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; }
+
+/* account */
+.emails { list-style: none; margin: 16px 0 0; padding: 0; }
+.emails li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; padding: 8px 0; border-bottom: 1px dotted #b5af9d; }
+.emails .address { margin-right: auto; overflow-wrap: anywhere; }

@@ -8,3 +8,5 @@ httpx
 sqlalchemy
 jupysql
 ipykernel
+bcrypt
+pypdf

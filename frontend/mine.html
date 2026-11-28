@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bildirilerim - Akademik Bildiri Portalı</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="">
+    <h1>Bildirilerim</h1>
+    <p id="message" role="status"></p>
+    <div id="rows"><p>Yükleniyor...</p></div>
+    <script src="app.js"></script>
+    <script>
+      requireLogin();
+      const UPLOAD = { SUBMITTED: "PDF'i değiştir", REVISION_REQUESTED: "Revize sürümü yükle",
+                       ACCEPTED: "Son sürümü yükle" };
+      const STATUS = {
+        SUBMITTED: "Gönderildi", UNDER_REVIEW: "Değerlendirmede", REVISION_REQUESTED: "Revizyon istendi",
+        REVISED: "Revize edildi", ACCEPTED: "Kabul edildi", REJECTED: "Reddedildi",
+        CAMERA_READY: "Son sürüm yüklendi", WITHDRAWN: "Geri çekildi"
+      };
+      const el = (tag, className, ...children) => Object.assign(element(tag, ...children), { className });
+
+      function actions(s) {
+        if (!s.is_corresponding)
+          return el("p", "note", "Bu bildiride yalnızca sorumlu yazar değişiklik yapabilir.");
+        const box = el("div", "row");
+        if (UPLOAD[s.status] && s.can_upload) {
+          const pick = document.createElement("input");
+          pick.type = "file";
+          pick.accept = "application/pdf";
+          pick.onchange = async () => {
+            if (!confirm(`"${pick.files[0].name}" yeni sürüm olarak yüklensin mi?`)) { pick.value = ""; return; }
+            const body = new FormData();
+            body.append("file", pick.files[0]);
+            await run(`/submissions/${s.submission_id}/versions`, { method: "POST", body }, "Yeni sürüm kaydedildi.");
+          };
+          const label = el("label", "upload", UPLOAD[s.status], pick);
+          filePicker(pick);
+          box.append(label);
+        } else if (UPLOAD[s.status]) {
+          box.append(el("span", "note", "Yeni PDF yükleme süresi doldu."));
+        }
+        if (["SUBMITTED", "UNDER_REVIEW", "REVISION_REQUESTED"].includes(s.status)) {
+          const b = element("button", "Geri çek");
+          b.onclick = async () => {
+            if (confirm("Bu bildiri geri çekilsin mi? Bu işlem geri alınamaz."))
+              await run(`/submissions/${s.submission_id}/withdraw`, { method: "POST" }, "Bildiri geri çekildi.");
+          };
+          box.append(b);
+        }
+        return box.childElementCount ? box : null;
+      }
+
+      // a plain link cannot send the login token, so fetch the file, then show it
+      async function openPdf(s) {
+        const tab = window.open("", "_blank");  // opened at the click, or it is blocked
+        try {
+          if (!tab) throw new Error("Tarayıcı yeni sekmeyi engelledi.");
+          const response = await fetch(
+            `/submissions/${s.submission_id}/versions/${s.latest_version}/file`,
+            { headers: { Authorization: "Bearer " + token() } });
+          if (!response.ok) throw new Error((await response.json()).detail);
+          tab.location = URL.createObjectURL(await response.blob());
+        } catch (err) {
+          tab?.close();
+          show(err.message, true);
+          scrollTo(0, 0);
+        }
+      }
+
+      function status(s, closed) {
+        const open = el("button", "link", `PDF'i aç (sürüm ${s.latest_version})`);
+        open.type = "button";
+        open.onclick = () => openPdf(s);
+        return el("p", "status-line",
+          element("span", "Durum: ", el("span", closed ? "status closed" : "status", STATUS[s.status] || s.status)),
+          open);
+      }
+
+      function paper(s) {
+        const closed = ["WITHDRAWN", "REJECTED"].includes(s.status);
+        const names = s.authors.map(a =>
+          `${a.full_name}${a.corresponding ? "*" : ""} (${a.share}%)`).join(", ");
+        return element("li",
+          element("h2", s.title),
+          element("div", names),
+          el("p", "note", `${s.conference} ${s.year}, ${s.track}. No: ${s.submission_id}, sürüm ${s.latest_version}, gönderim tarihi ${new Date(s.created_at).toLocaleDateString("tr-TR")}.`),
+          status(s, closed),
+          actions(s));
+      }
+
+      async function run(path, options, done) {
+        try { await api(path, options); await load(); show(done); }
+        catch (err) { show(err.message, true); }
+        scrollTo(0, 0);
+      }
+
+      async function load() {
+        const list = await api("/submissions/mine");
+        if (!list.length) {
+          const a = el("a", "button", "Bildiri gönder");
+          a.href = "submit.html";
+          return rows.replaceChildren(element("p", "Henüz bildiriniz yok."), a);
+        }
+        rows.replaceChildren(el("ul", "papers", ...list.map(paper)),
+                             el("p", "note", "* sorumlu yazar"));
+      }
+
+      const sent = new URLSearchParams(location.search).get("submitted");
+      if (sent) {
+        show(`Bildiriniz alındı. Bildiri no: ${sent}.`);
+        history.replaceState(null, "", "mine.html");
+      }
+      load().catch(err => { rows.replaceChildren(); show(err.message, true); });
+    </script>
+  </main>
+</body>
+</html>

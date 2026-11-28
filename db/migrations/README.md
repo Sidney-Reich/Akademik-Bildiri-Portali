@@ -60,3 +60,13 @@ One rule = one new file, named with the date, time and task:
 ```
 
 These names sort after `007_…`, so rules are always applied after the tables.
+
+## T1 rules that affect the other tasks (seed data, tests)
+
+- A submission needs a `SUBMISSION` deadline in `core.track_deadline` that has not passed.
+  Other `deadline_type` values read by T1: `REVISION`, `CAMERA_READY`.
+- A submission starts as `SUBMITTED`, and by commit it needs its authors (shares total 100)
+  and a version 1. Status values: see `003_t1_submission.sql`.
+- After the deadline, or once the status is not `SUBMITTED`, changes to `core.authorship`
+  are skipped (0 rows, a warning) and recorded in `core.audit_log` when that table exists.
+- The backend sets `app.person_id` (who is acting) with `set_config(..., true)`.

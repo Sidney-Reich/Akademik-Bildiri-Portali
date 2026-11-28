@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bildiri gönder - Akademik Bildiri Portalı</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="">
+    <h1>Bildiri gönder</h1>
+    <p id="message" role="status"></p>
+    <form id="form">
+      <section>
+        <h2>1. Bildiri</h2>
+        <label for="track">İzlek</label>
+        <input id="track" list="trackList" required disabled autocomplete="off" placeholder="Yükleniyor...">
+        <datalist id="trackList"></datalist>
+        <p class="note" id="due"></p>
+        <label for="title_">Başlık</label><input id="title_" required>
+        <label for="abstract">Özet</label><textarea id="abstract" rows="7" required></textarea>
+      </section>
+      <section>
+        <h2>2. Yazarlar</h2>
+        <p class="note">Bildiride görünecekleri sırayla ekleyin. Katkı paylarının toplamı 100 olmalıdır.</p>
+        <div id="authors"></div>
+        <div class="total" id="total" aria-live="polite"></div>
+        <div class="row">
+          <button type="button" id="add">Ortak yazar ekle</button>
+          <button type="button" class="link" id="split">Payları eşit böl</button>
+        </div>
+      </section>
+      <section>
+        <h2>3. Dosya</h2>
+        <label for="file">PDF dosyası</label>
+        <input id="file" type="file" accept="application/pdf" required>
+        <p class="note">Dosyanın içinde saklı yazar bilgileri yükleme sırasında silinir.</p>
+      </section>
+      <button id="send" class="primary" disabled>Gönder</button>
+    </form>
+    <script src="app.js"></script>
+    <script>
+      requireLogin();
+      // one key per paper: sending the same form again never creates a second submission
+      let key = crypto.randomUUID();
+      let openTracks = [];
+      const field = (row, name) => row.querySelector(`[name=${name}]`);
+      const button = (text, onclick) => {
+        const b = element("button", text);
+        Object.assign(b, { type: "button", className: "link", onclick });
+        return b;
+      };
+      function input(name, type, placeholder, value) {
+        const i = document.createElement("input");
+        Object.assign(i, { name, type, placeholder, value: value ?? "" });
+        i.setAttribute("aria-label", placeholder);
+        return i;
+      }
+
+      // numbers, move buttons and the total follow every change
+      function refresh() {
+        const rows = [...authors.children];
+        rows.forEach((row, n) => {
+          row.querySelector(".no").textContent = n + 1 + ".";
+          row.querySelector(".up").disabled = n === 0;
+        });
+        // work in hundredths, so that 33.33 + 33.33 + 33.34 is exactly 100
+        const sum = rows.reduce((a, r) => a + Math.round(100 * (field(r, "share").value || 0)), 0);
+        total.textContent = `Toplam pay: ${sum / 100} / 100`;
+        total.className = "total " + (sum === 10000 ? "ok" : "wrong");
+      }
+
+      // isMe: the person logged in; must stay an author, name and email are fixed
+      function addAuthor(isMe, email, name) {
+        const mail = input("email", "email", "E-posta", email);
+        const full = input("full_name", "text", isMe ? "Ad soyad" : "Ad soyad (kayıtlı değilse gerekli)", name);
+        const part = input("share", "number", "Pay %", isMe ? 100 : "");
+        Object.assign(part, { min: "0.01", max: "100", step: "0.01", required: true });
+        mail.required = true;
+        mail.readOnly = full.readOnly = isMe;
+        const inst = input("institution", "text", "Kurum");
+        inst.className = "inst";
+        const radio = input("corresponding", "radio", "Sorumlu yazar");
+        radio.checked = isMe;
+
+        const row = element("div");
+        row.className = "author";
+        const up = button("Yukarı taşı", () => { authors.insertBefore(row, row.previousElementSibling); refresh(); });
+        up.classList.add("up");
+        const foot = element("div", element("label", radio, isMe ? "Sorumlu yazar (bu sizsiniz)" : "Sorumlu yazar"), up);
+        foot.className = "foot";
+        if (!isMe) foot.append(button("Kaldır", () => {
+          const wasCorresponding = radio.checked;
+          row.remove();
+          if (wasCorresponding) authors.querySelector("[readonly]").closest(".author")
+            .querySelector("[name=corresponding]").checked = true;
+          refresh();
+        }));
+        const no = element("span");
+        no.className = "no";
+        row.append(no, mail, full, part, inst, foot);
+        authors.append(row);
+        refresh();
+      }
+      add.onclick = () => addAuthor(false);
+      split.onclick = () => {
+        const rows = [...authors.children];
+        const each = Math.floor(10000 / rows.length), rest = 10000 - each * rows.length;
+        rows.forEach((row, n) => field(row, "share").value = (each + (n < rest ? 1 : 0)) / 100);
+        show("");
+        refresh();
+      };
+      authors.oninput = () => { show(""); refresh(); };
+
+      // the author types; the text must end up naming one of the open tracks
+      const trackName = t => `${t.conference} ${t.year}: ${t.track}`;
+      const plain = text => text.trim().toLocaleLowerCase("tr");
+      function chosenTrack() {
+        const typed = plain(track.value);
+        const exact = openTracks.find(t => plain(trackName(t)) === typed);
+        if (exact || !typed) return exact;
+        const near = openTracks.filter(t => plain(trackName(t)).includes(typed));
+        return near.length === 1 ? near[0] : undefined;
+      }
+      function showDue() {
+        const t = chosenTrack();
+        track.setCustomValidity(t ? "" : "Listedeki açık izleklerden birini yazın.");
+        due.textContent = t
+          ? `${trackName(t)} - son tarih: ${new Date(t.due_at).toLocaleString("tr-TR")}`
+          : track.value ? "Eşleşen tek bir açık izlek yok; yazmaya devam edin." : "Konferans veya izlek adını yazın.";
+      }
+      track.oninput = showDue;
+      // leaving the field completes a partly typed name
+      track.onchange = () => {
+        const t = chosenTrack();
+        if (t) track.value = trackName(t);
+      };
+
+      filePicker(file);
+
+      (async () => {
+        try {
+          const me = await api("/me");
+          addAuthor(true, me.emails[0].email, me.full_name);
+          openTracks = (await api("/tracks")).filter(t => t.open);
+          trackList.replaceChildren(...openTracks.map(t => new Option(trackName(t), trackName(t))));
+          if (openTracks.length) {
+            track.disabled = send.disabled = false;
+            track.placeholder = "Yazmaya başlayın...";
+            showDue();
+          } else {
+            track.placeholder = "Açık izlek yok";
+            show("Şu anda gönderime açık bir konferans izleği yok, bu yüzden bildiri gönderilemiyor.", true);
+          }
+        } catch (err) { show(err.message, true); }
+      })();
+
+      document.getElementById("form").onsubmit = async (e) => {
+        e.preventDefault();
+        const list = [...authors.children].map(row => ({
+          email: field(row, "email").value, full_name: field(row, "full_name").value || null,
+          share: field(row, "share").value, institution: field(row, "institution").value || null,
+          corresponding: field(row, "corresponding").checked }));
+        const body = new FormData();
+        body.append("track_id", chosenTrack().track_id);
+        body.append("title", title_.value);
+        body.append("abstract", abstract.value);
+        body.append("authors", JSON.stringify(list));
+        body.append("file", file.files[0]);
+        send.disabled = true;
+        show("Yükleniyor...");
+        try {
+          const r = await api("/submissions", { method: "POST", body, headers: { "Idempotency-Key": key } });
+          location.href = "mine.html?submitted=" + r.submission_id;
+        } catch (err) {
+          show(err.message, true);
+          scrollTo(0, 0);
+          send.disabled = false;
+        }
+      };
+    </script>
+  </main>
+</body>
+</html>

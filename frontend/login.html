@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Giriş - Akademik Bildiri Portalı</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="narrow">
+    <h1>Giriş yap</h1>
+    <p id="message" role="status"></p>
+    <form id="form">
+      <label for="email">E-posta</label><input id="email" type="email" autocomplete="username" required>
+      <label for="password">Parola</label><input id="password" type="password" autocomplete="current-password" required>
+      <div class="row"><button class="primary">Giriş yap</button><a href="register.html">Hesap oluştur</a></div>
+    </form>
+    <script src="app.js"></script>
+    <script>
+      if (token()) location.replace("mine.html");
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+          const r = await api("/auth/login", { method: "POST",
+            json: { email: email.value, password: password.value } });
+          sessionStorage.setItem("token", r.token);
+          location.href = "mine.html";
+        } catch (err) { show(err.message, true); }
+      };
+    </script>
+  </main>
+</body>
+</html>

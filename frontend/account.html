@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hesabım - Akademik Bildiri Portalı</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="">
+    <h1>Hesabım</h1>
+    <p id="message" role="status"></p>
+    <section>
+      <h2 id="fullName">Yükleniyor...</h2>
+      <p class="note" id="orcid"></p>
+    </section>
+    <section>
+      <h2>E-posta adresleri</h2>
+      <p class="note">Herhangi biriyle giriş yapabilirsiniz. Biri her zaman birincil adrestir.</p>
+      <ul class="emails" id="emails"></ul>
+      <form id="form">
+        <label for="email">Yeni e-posta adresi</label>
+        <input id="email" type="email" autocomplete="email" required>
+        <div class="row"><button class="primary">E-posta ekle</button></div>
+      </form>
+    </section>
+    <script src="app.js"></script>
+    <script>
+      requireLogin();
+
+      async function run(action, done) {
+        try { await action(); await load(); show(done); }
+        catch (err) { show(err.message, true); }
+      }
+
+      function button(text, onclick) {
+        const b = element("button", text);
+        Object.assign(b, { type: "button", className: "link", onclick });
+        return b;
+      }
+
+      function row(e) {
+        const address = element("span", e.email);
+        address.className = "address";
+        if (e.is_primary) {
+          const tag = element("span", "Birincil");
+          tag.className = "status";
+          return element("li", address, tag);
+        }
+        return element("li", address,
+          button("Birincil yap", () => run(
+            () => api("/me/emails/primary", { method: "PUT", json: { email: e.email } }),
+            "Birincil adres değiştirildi.")),
+          button("Sil", () => {
+            if (confirm(`${e.email} silinsin mi?`))
+              run(() => api("/me/emails?email=" + encodeURIComponent(e.email), { method: "DELETE" }),
+                  "E-posta silindi.");
+          }));
+      }
+
+      async function load() {
+        const me = await api("/me");
+        fullName.textContent = me.full_name;
+        orcid.textContent = me.orcid ? "ORCID: " + me.orcid : "ORCID eklenmemiş.";
+        emails.replaceChildren(...me.emails.map(row));
+      }
+
+      form.onsubmit = (event) => {
+        event.preventDefault();
+        run(async () => {
+          await api("/me/emails", { method: "POST", json: { email: email.value } });
+          form.reset();
+        }, "E-posta eklendi.");
+      };
+
+      load().catch(err => show(err.message, true));
+    </script>
+  </main>
+</body>
+</html>
